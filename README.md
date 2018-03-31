@@ -1,5 +1,5 @@
 # Word prediction and completion
-A Perl implementation of word prediction and completion, created for CSCI 4152 Natural Language Processing. 
+A Python implementation of word prediction and completion, created for CSCI 4152 Natural Language Processing. 
 
 The initial program will take a word or partial word as input, and either provide a suggestion for completion or suggest the next word:
 - If the input word is in the dictionary, predict the next word using an ngram model.
