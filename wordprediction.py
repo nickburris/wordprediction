@@ -32,6 +32,11 @@ def gen_ngrams(dirname):
 				for w in sentence.split(" "):
 					w = reg.sub('', w).lower()
 					if(w != ''):
+						# Add word if not in dictionary
+						if not is_whole_word(w):
+							# TODO look at the words it's adding, lots are weird and should be prevented
+							#print("adding " + w)
+							t[w] = True
 						words.append(w)
 						c[w] += 1
 	
