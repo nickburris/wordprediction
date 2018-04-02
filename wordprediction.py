@@ -2,6 +2,7 @@ import nltk
 from collections import defaultdict
 import pygtrie
 import re
+import os
 
 t = pygtrie.CharTrie() # trie
 ngrams = {} # ngrams
@@ -16,17 +17,19 @@ def gen_trie(filename):
 				t[w] = True
 				
 # Generate bigrams and trigrams for the input text
-def gen_ngrams(filename):
+# TODO shouldn't read entire files into memory
+def gen_ngrams(dirname):
 	reg = re.compile('[^a-zA-Z]')
 	# Read in the words from the text
 	words = []
-	with open(filename) as f:
-		for sentence in f:
-			for w in sentence.split(" "):
-				w = reg.sub('', w).lower()
-				if(w != ''):
-					words.append(w)
-					c[w] += 1
+	for filename in os.listdir(dirname):
+		with open(dirname + "/" + filename) as f:
+			for sentence in f:
+				for w in sentence.split(" "):
+					w = reg.sub('', w).lower()
+					if(w != ''):
+						words.append(w)
+						c[w] += 1
 	
 	# Count bigrams and trigrams
 	n = nltk.ngrams(words, 3)
@@ -91,7 +94,7 @@ def get_completions(partial, last = '', second_last = ''):
 	return completions
 
 gen_trie("words")
-gen_ngrams("tomsawyer.txt")
+gen_ngrams("train_english")
 
 while True:
 	in_words = input('---------------------------\n' +
@@ -116,13 +119,13 @@ while True:
 		print("Whole word detected. Here are the top next word predictions:")
 		if is_whole_word(second_last_w) and second_last_w in ngrams and last_w in ngrams[second_last_w]:
 			print("Based on last 2 words (best prediction):")
-			print(' | '.join(sorted([k for k,_ in ngrams[second_last_w][last_w].items() 
+			print(', '.join(sorted([k for k,_ in ngrams[second_last_w][last_w].items() 
 										if k != "_count" and "_count" in ngrams[second_last_w][last_w][k]], 
 									key=lambda k: ngrams[second_last_w][last_w][k]["_count"], 
 									reverse=True)[:10]))	
 		elif last_w in ngrams:
 			print("Based on last word (weak prediction):")
-			print(' | '.join(sorted([k for k,_ in ngrams[last_w].items() if "_count" in ngrams[last_w][k]], 
+			print(', '.join(sorted([k for k,_ in ngrams[last_w].items() if "_count" in ngrams[last_w][k]], 
 									key=lambda k: ngrams[last_w][k]["_count"], 
 									reverse=True)[:10]))
 		else:
@@ -133,6 +136,6 @@ while True:
 		print("Partial word detected.\n")
 	
 	print("Here are the word completion predictions:")
-	print(' | '.join([c[0] for c in get_completions(partial=last_w, last=second_last_w, second_last=third_last_w)]))
+	print(', '.join([c[0] for c in get_completions(partial=last_w, last=second_last_w, second_last=third_last_w)]))
 	
 	print()
