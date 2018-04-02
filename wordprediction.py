@@ -1,8 +1,12 @@
 import nltk
+import time
 from collections import defaultdict
 import pygtrie
 import re
 import os
+
+# TODO set up flags
+verbose = True
 
 t = pygtrie.CharTrie() # trie
 ngrams = {} # ngrams
@@ -10,7 +14,7 @@ c = defaultdict(int) # counts
 
 # Assume one word per line, like linux words
 def gen_trie(filename):
-	with open(filename) as f:
+	with open(filename, encoding="utf8") as f:
 		for word in f:
 			w = word.rstrip().lower()
 			if(w != ''):
@@ -23,7 +27,7 @@ def gen_ngrams(dirname):
 	# Read in the words from the text
 	words = []
 	for filename in os.listdir(dirname):
-		with open(dirname + "/" + filename) as f:
+		with open(dirname + "/" + filename, encoding="utf8") as f:
 			for sentence in f:
 				for w in sentence.split(" "):
 					w = reg.sub('', w).lower()
@@ -93,8 +97,17 @@ def get_completions(partial, last = '', second_last = ''):
 	# completions is a sorted list of (word, ngram-count) tuples
 	return completions
 
+def time_millis():
+	return int(round(time.time()*1000))
+#--------------- Start demo ---------------
+
+start_millis = time_millis()
+
 gen_trie("words")
 gen_ngrams("train_english")
+
+if(verbose):
+	print("Generating structures took " + str((time_millis() - start_millis)) + "ms");
 
 while True:
 	in_words = input('---------------------------\n' +
