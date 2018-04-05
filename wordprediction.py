@@ -135,8 +135,7 @@ def time_millis():
 
 # Interactive mode
 if(args.mode == M_INT):
-
-print("Generating structures...")
+	print("Generating structures...")
 	start_millis = time_millis()
 	gen_trie("words")
 	gen_ngrams(dirname="train_english")
