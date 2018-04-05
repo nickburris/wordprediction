@@ -201,6 +201,7 @@ if(args.mode == M_INT):
 
 # Evaluate algorithm on brown data
 elif args.mode == M_EBROWN:
+	print("Generating structures...")
 	start_millis = time_millis()
 	gen_trie("words")
 	gen_ngrams(filename="brown.txt")
@@ -216,3 +217,14 @@ elif args.mode == M_EBROWN:
 	brown_words = ngram_words
 	for i in range(len(brown_words)-2):
 		predictions = get_predictions(last=brown_words[i+1], second_last=brown_words[i])
+		actual = brown_words[i+2]
+		if actual in predictions:
+			top_ten += 1
+		if actual == predictions[0]:
+			top_result += 1
+		total += 1
+		
+		# Print status every 10%
+		if i%(int(len(brown_words)/10)) == 0:
+			print("total: %d, top 10: %d, top result: %d" % (total, top_ten, top_result))
+	print("total: %d, top 10: %d, top result: %d" % (total, top_ten, top_result))
