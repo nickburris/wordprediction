@@ -14,7 +14,7 @@ M_EBROWN = "evalbrown"
 
 parser = argparse.ArgumentParser(
 	description="Evaluation of ngram based word completion and prediction.")
-parser.add_argument("-m", "--mode", help="the mode to run in", 
+parser.add_argument("-m", "--mode", help="the mode to run in",
 	choices=[M_INT, M_EBROWN], default=M_INT)
 args = parser.parse_args()
 
@@ -48,7 +48,7 @@ def gen_ngrams(dirname='', filename=''):
 						if(w != ''):
 							# Add word if not in dictionary
 							if not is_whole_word(w):
-								# TODO look at the words it's adding, lots are 
+								# TODO look at the words it's adding, lots are
 								# weird and should be prevented
 								#print("adding " + w)
 								t[w] = True
@@ -102,18 +102,18 @@ def get_completions(partial, last = '', second_last = ''):
 							
 	elif last != '' and second_last == '':
 		# Return completions based on last word
-		completions = sorted([(w, ngrams[last][w]["_count"]) for w in get_suffixes(partial) 
-								if last in ngrams 
-								and w in ngrams[last] 
+		completions = sorted([(w, ngrams[last][w]["_count"]) for w in get_suffixes(partial)
+								if last in ngrams
+								and w in ngrams[last]
 								and "_count" in ngrams[last][w]],
 							key=lambda w: ngrams[last][w[0]]["_count"],
 							reverse=True)[:COUNT]
 	elif last != '' and second_last != '':
 		# Return completions based on last 2 words
 		completions = sorted([(w, ngrams[second_last][last][w]["_count"]) for w in get_suffixes(partial)
-								if second_last in ngrams 
-								and last in ngrams[second_last] 
-								and w in ngrams[second_last][last] 
+								if second_last in ngrams
+								and last in ngrams[second_last]
+								and w in ngrams[second_last][last]
 								and "_count" in ngrams[second_last][last][w]],
 							key=lambda w: ngrams[second_last][last][w[0]]["_count"],
 							reverse=True)[:COUNT]
@@ -136,16 +136,16 @@ def get_predictions(last = '', second_last = ''):
 	# Return predictions based on trigrams
 	if last != '' and second_last != '':
 		if second_last in ngrams and last in ngrams[second_last]:
-			return sorted([k for k,_ in ngrams[second_last][last].items() 
-							if k != "_count" 
-							and "_count" in ngrams[second_last][last][k]], 
-							key=lambda k: ngrams[second_last][last][k]["_count"], 
+			return sorted([k for k,_ in ngrams[second_last][last].items()
+							if k != "_count"
+							and "_count" in ngrams[second_last][last][k]],
+							key=lambda k: ngrams[second_last][last][k]["_count"],
 							reverse=True)[:N_PREDS]
 	elif last != '':
 		if last in ngrams:
-			return sorted([k for k,_ in ngrams[last].items() 
-							if "_count" in ngrams[last][k]], 
-							key=lambda k: ngrams[last][k]["_count"], 
+			return sorted([k for k,_ in ngrams[last].items()
+							if "_count" in ngrams[last][k]],
+							key=lambda k: ngrams[last][k]["_count"],
 							reverse=True)[:N_PREDS]
 
 #------------------------------
@@ -178,7 +178,7 @@ if(args.mode == M_INT):
 			last_w = in_words[-1]
 			second_last_w = in_words[-2]
 			third_last_w = in_words[-3]
-				  
+
 		if is_whole_word(last_w): # If last_w was a whole word
 			preds = get_predictions(last=last_w, second_last=second_last_w)
 			if len(preds) > 0:
