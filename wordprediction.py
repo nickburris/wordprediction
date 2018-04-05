@@ -4,9 +4,21 @@ from collections import defaultdict
 import pygtrie
 import re
 import os
+import argparse
 
-# TODO set up flags
-verbose = True
+# Available modes:
+# Start interactive mode where the user can enter words and get completions
+# and predictions
+M_INT = "interactive"
+M_EBROWN = "evalbrown"
+
+parser = argparse.ArgumentParser(
+	description="Evaluation of ngram based word completion and prediction.")
+parser.add_argument("-m", "--mode", help="the mode to run in", 
+	choices=[M_INT, M_EBROWN], default=M_INT)
+args = parser.parse_args()
+
+nltk.download("brown")
 
 t = pygtrie.CharTrie() # trie
 ngrams = {} # ngrams
@@ -20,28 +32,42 @@ def gen_trie(filename):
 			if(w != ''):
 				t[w] = True
 				
-# Generate bigrams and trigrams for the input text
-# TODO shouldn't read entire files into memory
-def gen_ngrams(dirname):
+# Generate bigrams and trigrams for the input texts
+# If dirname is empty, load words from filename (used for training on single files)
+ngram_words = []
+def gen_ngrams(dirname='', filename=''):
 	reg = re.compile('[^a-zA-Z]')
 	# Read in the words from the text
-	words = []
-	for filename in os.listdir(dirname):
-		with open(dirname + "/" + filename, encoding="utf8") as f:
+	
+	if dirname != '':
+		for filename in os.listdir(dirname):
+			with open(dirname + "/" + filename, encoding="utf8") as f:
+				for sentence in f:
+					for w in sentence.split(" "):
+						w = reg.sub('', w).lower()
+						if(w != ''):
+							# Add word if not in dictionary
+							if not is_whole_word(w):
+								# TODO look at the words it's adding, lots are 
+								# weird and should be prevented
+								#print("adding " + w)
+								t[w] = True
+							ngram_words.append(w)
+							c[w] += 1
+	elif filename != '':
+		with open(filename, encoding="utf8") as f:
 			for sentence in f:
 				for w in sentence.split(" "):
 					w = reg.sub('', w).lower()
 					if(w != ''):
 						# Add word if not in dictionary
 						if not is_whole_word(w):
-							# TODO look at the words it's adding, lots are weird and should be prevented
-							#print("adding " + w)
 							t[w] = True
-						words.append(w)
+						ngram_words.append(w)
 						c[w] += 1
 	
 	# Count bigrams and trigrams
-	n = nltk.ngrams(words, 3)
+	n = nltk.ngrams(ngram_words, 3)
 	for tu in n:
 		if tu[0] not in ngrams:
 			ngrams[tu[0]] = {}
@@ -64,7 +90,7 @@ def is_whole_word(w):
 
 # Get the top word completions
 # If just partial is passed, return the most common completions
-# If last and possibly second_last are passed, return completions ranked by ngrams
+# If last and possibly second_last are passed, results are based on ngrams
 def get_completions(partial, last = '', second_last = ''):
 	COUNT = 10
 	completions = None
@@ -104,56 +130,80 @@ def get_completions(partial, last = '', second_last = ''):
 
 def time_millis():
 	return int(round(time.time()*1000))
-#--------------- Start demo ---------------
 
-start_millis = time_millis()
+#------------------------------
 
-gen_trie("words")
-gen_ngrams("train_english")
+# Interactive mode
+if(args.mode == M_INT):
 
-if(verbose):
-	print("Generating structures took " + str((time_millis() - start_millis)) + "ms");
+print("Generating structures...")
+	start_millis = time_millis()
+	gen_trie("words")
+	gen_ngrams(dirname="train_english")
+	gen_ngrams()
 
-while True:
-	in_words = input('---------------------------\n' +
-					 'Enter word or partial word: ').strip().lower().split(" ")
+	print("Generating structures took " + str((time_millis() - start_millis)) + "ms")
 	
-	last_w = ''
-	second_last_w = ''
-	third_last_w = ''
-	if len(in_words) == 0:
-		continue
-	elif len(in_words) == 1:
-		last_w = in_words[0]
-	elif len(in_words) == 2:
-		last_w = in_words[-1]
-		second_last_w = in_words[-2]
-	else:
-		last_w = in_words[-1]
-		second_last_w = in_words[-2]
-		third_last_w = in_words[-3]
-			  
-	if is_whole_word(last_w): # If last_w was a whole word
-		print("Whole word detected. Here are the top next word predictions:")
-		if is_whole_word(second_last_w) and second_last_w in ngrams and last_w in ngrams[second_last_w]:
-			print("Based on last 2 words (best prediction):")
-			print(', '.join(sorted([k for k,_ in ngrams[second_last_w][last_w].items() 
-										if k != "_count" and "_count" in ngrams[second_last_w][last_w][k]], 
-									key=lambda k: ngrams[second_last_w][last_w][k]["_count"], 
-									reverse=True)[:10]))	
-		elif last_w in ngrams:
-			print("Based on last word (weak prediction):")
-			print(', '.join(sorted([k for k,_ in ngrams[last_w].items() if "_count" in ngrams[last_w][k]], 
-									key=lambda k: ngrams[last_w][k]["_count"], 
-									reverse=True)[:10]))
-		else:
-			print("No word predictions.")
+	while True:
+		in_words = input('---------------------------\n' +
+						 'Enter word or partial word: ').strip().lower().split(" ")
 		
-		print()
-	else:
-		print("Partial word detected.\n")
+		last_w = ''
+		second_last_w = ''
+		third_last_w = ''
+		if len(in_words) == 0:
+			continue
+		elif len(in_words) == 1:
+			last_w = in_words[0]
+		elif len(in_words) == 2:
+			last_w = in_words[-1]
+			second_last_w = in_words[-2]
+		else:
+			last_w = in_words[-1]
+			second_last_w = in_words[-2]
+			third_last_w = in_words[-3]
+				  
+		if is_whole_word(last_w): # If last_w was a whole word
+			print("Whole word detected. Here are the top next word predictions:")
+			if is_whole_word(second_last_w) and second_last_w in ngrams and last_w in ngrams[second_last_w]:
+				print("Based on last 2 words (best prediction):")
+				print(', '.join(sorted([k for k,_ in ngrams[second_last_w][last_w].items() 
+											if k != "_count" and "_count" in ngrams[second_last_w][last_w][k]], 
+										key=lambda k: ngrams[second_last_w][last_w][k]["_count"], 
+										reverse=True)[:10]))
+			elif last_w in ngrams:
+				print("Based on last word (weak prediction):")
+				print(', '.join(sorted([k for k,_ in ngrams[last_w].items() if "_count" in ngrams[last_w][k]], 
+										key=lambda k: ngrams[last_w][k]["_count"], 
+										reverse=True)[:10]))
+			else:
+				print("No word predictions.")
+			
+			print()
+		else:
+			print("Partial word detected.\n")
+		
+		completions = [c[0] for c in get_completions(partial=last_w, last=second_last_w, second_last=third_last_w)]
+		
+		if len(completions) > 1 or (len(completions)==1 and completions[0] != last_w):
+			print("Here are the word completion predictions:")
+			print(', '.join(completions))
+			print()
+
+# Evaluate algorithm on brown data
+elif args.mode == M_EBROWN:
+	start_millis = time_millis()
+	gen_trie("words")
+	gen_ngrams(filename="brown.txt")
+	gen_ngrams()
+
+	print("Generating structures took " + str((time_millis() - start_millis)) + "ms")
 	
-	print("Here are the word completion predictions:")
-	print(', '.join([c[0] for c in get_completions(partial=last_w, last=second_last_w, second_last=third_last_w)]))
+	top_result = 0
+	top_ten = 0
+	total = 0
 	
-	print()
+	# ngram_words are the words from brown
+	brown_words = ngram_words
+	#for i in range(len(brown_words)-2):
+		#predictions = 
