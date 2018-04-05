@@ -130,6 +130,23 @@ def get_completions(partial, last = '', second_last = ''):
 
 def time_millis():
 	return int(round(time.time()*1000))
+	
+def get_predictions(last = '', second_last = ''):
+	N_PREDS = 10
+	# Return predictions based on trigrams
+	if last != '' and second_last != '':
+		if second_last in ngrams and last in ngrams[second_last]:
+			return sorted([k for k,_ in ngrams[second_last][last].items() 
+							if k != "_count" 
+							and "_count" in ngrams[second_last][last][k]], 
+							key=lambda k: ngrams[second_last][last][k]["_count"], 
+							reverse=True)[:N_PREDS]
+	elif last != '':
+		if last in ngrams:
+			return sorted([k for k,_ in ngrams[last].items() 
+							if "_count" in ngrams[last][k]], 
+							key=lambda k: ngrams[last][k]["_count"], 
+							reverse=True)[:N_PREDS]
 
 #------------------------------
 
@@ -163,18 +180,10 @@ if(args.mode == M_INT):
 			third_last_w = in_words[-3]
 				  
 		if is_whole_word(last_w): # If last_w was a whole word
-			print("Whole word detected. Here are the top next word predictions:")
-			if is_whole_word(second_last_w) and second_last_w in ngrams and last_w in ngrams[second_last_w]:
-				print("Based on last 2 words (best prediction):")
-				print(', '.join(sorted([k for k,_ in ngrams[second_last_w][last_w].items() 
-											if k != "_count" and "_count" in ngrams[second_last_w][last_w][k]], 
-										key=lambda k: ngrams[second_last_w][last_w][k]["_count"], 
-										reverse=True)[:10]))
-			elif last_w in ngrams:
-				print("Based on last word (weak prediction):")
-				print(', '.join(sorted([k for k,_ in ngrams[last_w].items() if "_count" in ngrams[last_w][k]], 
-										key=lambda k: ngrams[last_w][k]["_count"], 
-										reverse=True)[:10]))
+			preds = get_predictions(last=last_w, second_last=second_last_w)
+			if len(preds) > 0:
+				print("Whole word detected. Here are the top next word predictions:")
+				print(', '.join(preds))
 			else:
 				print("No word predictions.")
 			
@@ -182,7 +191,8 @@ if(args.mode == M_INT):
 		else:
 			print("Partial word detected.\n")
 		
-		completions = [c[0] for c in get_completions(partial=last_w, last=second_last_w, second_last=third_last_w)]
+		completions = [c[0] for c in get_completions(
+			partial=last_w, last=second_last_w, second_last=third_last_w)]
 		
 		if len(completions) > 1 or (len(completions)==1 and completions[0] != last_w):
 			print("Here are the word completion predictions:")
@@ -204,5 +214,5 @@ elif args.mode == M_EBROWN:
 	
 	# ngram_words are the words from brown
 	brown_words = ngram_words
-	#for i in range(len(brown_words)-2):
-		#predictions = 
+	for i in range(len(brown_words)-2):
+		predictions = get_predictions(last=brown_words[i+1], second_last=brown_words[i])
